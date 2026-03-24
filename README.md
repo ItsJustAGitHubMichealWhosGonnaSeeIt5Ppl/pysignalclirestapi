@@ -43,7 +43,7 @@ sendMe = signal.send_message(message=myMessage,recipients=myFriendSteve)
 #### Receiving messages
 
 Receiving messages in 'normal' or 'native' mode
-> In 'normal' and 'native' mode, the REST API will store the messages until you call `receive()`
+> In 'normal' and 'native' mode, messages remain on the Signal server until `receive()` is called
 
 ```python
 myMessages = signal.receive()
