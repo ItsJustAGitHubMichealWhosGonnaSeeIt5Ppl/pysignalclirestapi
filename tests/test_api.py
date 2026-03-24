@@ -101,3 +101,35 @@ class TestGroupMethods(unittest.TestCase):
             number=""
         )
         
+class TestDeleteMessage(unittest.TestCase):
+    """
+    Test message deletion method.
+    
+    THESE TESTS ARE INTENDED FOR API INSTANCES WITH NO AUTHENTICATION!
+    IF YOU HAVE AUTHENTICATION, MODIFY `setUp()`
+    """
+    def setUp(self):
+        self._NUMBER: str = getenv("NUMBER", None)
+        self._API_URL:str = getenv("API_URL", None)
+        self.client = SignalCliRestApi(
+            base_url=self._API_URL,
+            number=self._NUMBER
+        )
+    
+    def test_delete_success(self):
+        """
+        Delete an actual message
+        """
+        
+        # Create a group so we have somewhere to send messages
+        group = self.client.create_group(name="TestDeleteMessage", members=self._NUMBER)
+        groupid = group.get("id")
+        message = self.client.send_message(recipients=[groupid], message="Delete Me :)")
+        msg_timestamp = message.get("timestamp")
+        delete = self.client.delete_message(recipient=groupid, timestamp=int(msg_timestamp))
+        self.assertIsNot(delete, None, msg="Message deleted")
+        
+        # Cleanup
+        self.client.delete_group(groupid=groupid)
+        
+    
