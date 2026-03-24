@@ -222,7 +222,8 @@ class SignalCliRestApi(object):
         # I don't think there is any response data
         #return request.json()
 
-    def create_group(self, name:str, members:list, description:str=None, expiration_time:int=0, group_link:str='disabled', permissions:dict=None):
+    #TODO get rid of the extra shit and just return the id
+    def create_group(self, name:str, members:list, description:str=None, expiration_time:int=0, group_link:str='disabled', permissions:dict=None) -> dict:
         """Create a Signal group.
 
         Args:
@@ -786,6 +787,30 @@ class SignalCliRestApi(object):
         data = self._format_params(params, endpoint='send_message')
         response = self._requester(method='post', url=url, data=data, success_code=201, error_unknown='while sending message', error_couldnt='send message')
         return json.loads(response.content)
+    
+    def delete_message(self,
+        recipient:str,
+        timestamp:int
+        )-> dict:
+        """Delete a Signal message.
+
+        Args:
+            recipient (str): Original message recipient.
+            timestamp (int): Message timestamp
+
+        Returns:
+            dict: A new timestamp for the deleted message (im not sure what you can do with this though)
+        """
+        params = {
+            "recipient": recipient,
+            "timestamp": timestamp
+        }
+        
+        url = self._base_url + "/v1/remote-delete/" + self._number
+        data = self._format_params(params)
+        
+        resp = self._requester(method='delete', url=url, data=data, success_code=201, error_unknown='while deleting message', error_couldnt='delete message')
+        return resp.json()
     
     def add_reaction(self, reaction:str, recipient:str, timestamp:int, target_author:str=None):
         """Add (send) a reaction to a message. Uses timestamp to identify the message to react to.
