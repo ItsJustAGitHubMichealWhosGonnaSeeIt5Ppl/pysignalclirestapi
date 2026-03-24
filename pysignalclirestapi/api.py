@@ -11,6 +11,7 @@ from requests.models import HTTPBasicAuth
 from six import raise_from
 import requests
 from .helpers import bytes_to_base64
+from typing import Optional
 
 
 class SignalCliRestApiError(Exception):
@@ -29,7 +30,7 @@ class SignalCliRestApiAuth(ABC):
 class SignalCliRestApiHTTPBasicAuth(SignalCliRestApiAuth):
     """SignalCliRestApiHTTPBasicAuth offers HTTP basic authentication."""
 
-    def __init__(self, basic_auth_user, basic_auth_pwd):
+    def __init__(self, basic_auth_user:str, basic_auth_pwd:str):
         self._auth = HTTPBasicAuth(basic_auth_user, basic_auth_pwd)
 
     def get_auth(self):
@@ -39,7 +40,7 @@ class SignalCliRestApiHTTPBasicAuth(SignalCliRestApiAuth):
 class SignalCliRestApi(object):
     """SignalCliRestApi implementation."""
 
-    def __init__(self, base_url, number, auth=None, verify_ssl=True):
+    def __init__(self, base_url:str, number:str, auth:Optional[type[SignalCliRestApiAuth]] = None, verify_ssl:bool = True):
         """Initialize the class."""
         super(SignalCliRestApi, self).__init__()
         self._session = requests.Session()
@@ -173,7 +174,12 @@ class SignalCliRestApi(object):
         resp = requests.get(self._base_url + "/v1/about", auth=self._auth, verify=self._verify_ssl)
         if resp.status_code == 200:
             return resp.json()
-        return None
+        
+        else:
+            # This is likely an auth error
+            #TODO should the signal base exception be used to provide more information?
+            resp.raise_for_status()
+    
 
     def api_info(self): #TODO should this be removed?
         try:
@@ -208,6 +214,13 @@ class SignalCliRestApi(object):
         except KeyError:
             pass
         return mode
+    
+    #TODO is this needed at all?
+    def _check_health(self):
+        url = self._base_url + "/v1/health"
+        request = self._requester(method='get', url=url, success_code=204, error_unknown='while checking Signal Docker Container health', error_couldnt='get Signal Docker Container health')
+        # I don't think there is any response data
+        #return request.json()
 
     def create_group(self, name:str, members:list, description:str=None, expiration_time:int=0, group_link:str='disabled', permissions:dict=None):
         """Create a Signal group.
@@ -228,12 +241,14 @@ class SignalCliRestApi(object):
             dict: Group ID.
         """
         members = [members] if isinstance(members, str) else members
-        params = {'name': name,
-                  'members': members,
-                  'description': description,
-                  'expiration_time': expiration_time,
-                  'group_link': group_link,
-                  'permissions': permissions}
+        params = {
+            'name': name,
+            'members': members,
+            'description': description,
+            'expiration_time': expiration_time,
+            'group_link': group_link,
+            'permissions': permissions
+            }
         
         url = self._base_url + "/v1/groups/" + self._number
         data = self._format_params(params)
@@ -281,12 +296,14 @@ class SignalCliRestApi(object):
             filename (str, optional): Filename of new profile image.
             attachment_as_bytes (str, optional): Attachment(s) in bytes format.
         """
-        params = {'groupid': groupid,
-                  'name': name,
-                  'description': description,
-                  'expiration_time': expiration_time,
-                  'filename': filename,
-                  'attachment_as_bytes': attachment_as_bytes,}
+        params = {
+            'groupid': groupid,
+            'name': name,
+            'description': description,
+            'expiration_time': expiration_time,
+            'filename': filename,
+            'attachment_as_bytes': attachment_as_bytes
+            }
         
         if filename is not None and attachment_as_bytes is not None:
             raise_from(SignalCliRestApiError(f"Can't use filename and attachment_as_bytes, please only send one"))
@@ -296,6 +313,7 @@ class SignalCliRestApi(object):
         # TODO add some sort of confirmation for the user
         request = self._requester(method='put', url=url ,data=data, success_code=204, error_unknown='while updating Signal Messenger group', error_couldnt='update Signal Messenger group')
         #return request
+        
     def delete_group(self, groupid:str):
         """Delete a Signal group.
 
@@ -348,8 +366,10 @@ class SignalCliRestApi(object):
             members (str, list): Member(s) to add.  Will accept a single user as a string, otherwise use a list.
         """
         
-        params = {'groupid': groupid,
-                  'members': members}
+        params = {
+            'groupid': groupid,
+            'members': members
+            }
         
         url = self._base_url + "/v1/groups/" + self._number + '/' + str(groupid) + '/members'
         data = self._format_params(params)
@@ -366,8 +386,10 @@ class SignalCliRestApi(object):
             members (str, list): Member(s) to remove.  Will accept a single user as a string, otherwise use a list.
         """
 
-        params = {'groupid': groupid,
-                  'members': members}
+        params = {
+            'groupid': groupid,
+            'members': members
+            }
         
         url = self._base_url + "/v1/groups/" + self._number + '/' + str(groupid) + '/members'
         data = self._format_params(params)
@@ -382,8 +404,10 @@ class SignalCliRestApi(object):
             admins (str, list): Users(s) to promote.  Will accept a single user as a string, otherwise use a list.
         """
         
-        params = {'groupid': groupid,
-                  'admins': admins}
+        params = {
+            'groupid': groupid,
+            'admins': admins
+            }
         
         url = self._base_url + "/v1/groups/" + self._number + '/' + str(groupid) + '/admins'
         data = self._format_params(params)
@@ -398,8 +422,10 @@ class SignalCliRestApi(object):
             admins (str, list): Users(s) to demote.  Will accept a single user as a string, otherwise use a list.
         """
         
-        unformatted_data = {'groupid': groupid,
-                  'admins': admins}
+        unformatted_data = {
+            'groupid': groupid,
+            'admins': admins
+            }
         
         url = self._base_url + "/v1/groups/" + self._number + '/' + str(groupid) + '/admins'
         data = self._format_params(unformatted_data)
@@ -456,6 +482,7 @@ class SignalCliRestApi(object):
         """
         try:
             import websockets  # dependency already in pyproject
+        
         except Exception as exc:
             raise_from(
                 SignalCliRestApiError("websockets package is required for json-rpc receive"),
@@ -509,7 +536,86 @@ class SignalCliRestApi(object):
             )
 
         return received
+    
+    async def stream_messages(self, 
+        ignore_attachments: bool = False,
+        ignore_stories: bool = False,
+        send_read_receipts: bool = False,
+        ):
+        """Stream messages via websocket (API must be in `json-rpc` mode)
 
+        Args:
+            ignore_attachments (bool, optional): If True, attachments will be ignored. Defaults to False.
+            ignore_stories (bool, optional): If True, stories will be ignored. Defaults to False.
+            send_read_receipts (bool, optional): If True, read receipts will be sent for received messages. Defaults to False.
+
+        Yields:
+            dict: Single envelope (message)
+        """
+        # This should work better than the current websocket implementation
+        try:
+            import websockets 
+        
+        except Exception as exc:
+            raise_from(
+                SignalCliRestApiError("websockets package is required for json-rpc receive"),
+                exc,
+            )
+
+        params = {
+            "ignore_attachments": ignore_attachments,
+            "ignore_stories": ignore_stories,
+            "send_read_receipts": send_read_receipts,
+        }
+        data = self._format_params(params=params, endpoint="receive")
+        ws_url = self._ws_url_for_receive(data)
+
+        ssl_ctx = None
+        if ws_url.startswith("wss://"):
+            ssl_ctx = ssl.create_default_context()
+            if not self._verify_ssl:
+                ssl_ctx.check_hostname = False
+                ssl_ctx.verify_mode = ssl.CERT_NONE
+
+        try:
+            async with websockets.connect(
+                uri = ws_url,
+                additional_headers=self._ws_headers() or None,
+                ssl=ssl_ctx,
+            ) as websocket:
+                # Yield the messages instead of storing them in a list
+                async for raw in websocket:
+                    try:
+                        yield json.loads(raw)
+                    except json.JSONDecodeError:
+                        continue
+        
+        except websockets.InvalidURI as exc:
+            error_message:str = "WebSocket connection failed: "
+            # If the exception was caused by an invalid status, it's probably because the `base_url` is set to http, which makes the websocket start with `ws`. The proxy server tries to upgrade the connection, resulting in an HTTP 301 error
+            exc_context = exc.__context__
+            if isinstance(exc_context, websockets.InvalidStatus):
+                # This confirms that the issue is caused by the something (probably the proxy) trying to redirect/upgrade the connection
+                #TODO it might be worth checking for other redirect codes?
+                if exc_context.args[0].status_code == 301:
+                    error_message += "The server returned a redirect. This typically occurs when a secure connection is required. Ensure your API base URL starts with 'https://'."
+                    
+                else:
+                    error_message += exc.msg
+            
+            else:
+                error_message += exc.msg
+            raise_from(
+                    SignalCliRestApiError(error_message),
+                    exc,
+                )
+        except Exception as exc:
+            raise_from(
+                SignalCliRestApiError("Couldn't receive Signal Messenger data via websocket"),
+                exc,
+            )
+        
+    #TODO complete docstring
     def receive(
         self,
         ignore_attachments: bool = False,
@@ -517,8 +623,9 @@ class SignalCliRestApi(object):
         send_read_receipts: bool = False,
         max_messages: int = None,
         timeout: int = 1,
-    ):
+    ) -> list[dict]:
         """Receive (get) Signal Messages from the Signal Network.
+        
 
         If you are running the docker container in normal/native mode, this is a GET endpoint.
         In json-rpc mode this is a websocket endpoint.
@@ -566,7 +673,7 @@ class SignalCliRestApi(object):
         )
         return request.json()
 
-    def update_profile(self, name:str, filename:str=None, attachment_as_bytes:str=None):
+    def update_profile(self, name:str, filename:str=None, attachment_as_bytes:bytes=None):
         """Update Signal profile.
 
         Use filename OR attachment_as_bytes, not both!
@@ -574,14 +681,16 @@ class SignalCliRestApi(object):
         Args:
             name (str, optional): New profile name.
             filename (str, optional): Filename of new avatar.
-            attachment_as_bytes (str, optional): Attachment(s) in bytes format.
+            attachment_as_bytes (bytes, optional): Attachment(s) in bytes format.
         """
-        params = {'name': name,
-                  'filename':filename,
-                  'attachment_as_bytes': attachment_as_bytes}
+        params = {
+            'name': name,
+            'filename':filename,
+            'attachment_as_bytes': attachment_as_bytes
+            }
         
         if filename is not None and attachment_as_bytes is not None:
-            raise_from(SignalCliRestApiError(f"Can't use filename and attachment_as_bytes, please only send one"))
+            raise_from(SignalCliRestApiError(f"Provide filename or attachment_as_bytes, not both!"))
         
         url = self._base_url + "/v1/profiles/" + self._number
         data = self._format_params(params, 'update_group')
@@ -589,9 +698,20 @@ class SignalCliRestApi(object):
         request = self._requester(method='put', url=url ,data=data, success_code=204, error_unknown='while updating profile', error_couldnt='update profile')
         #return request
 
-    def send_message(self, message:str, recipients:list, notify_self:bool=False, filenames=None, attachments_as_bytes:list=None,
-                     mentions:list=None, quote_timestamp:int=None, quote_author:str=None, quote_message:str=None,
-                     quote_mentions:list=None, text_mode="normal"):
+    #TODO use string literal for the text_mode?
+    def send_message(self, 
+        message:str,
+        recipients:list,
+        notify_self:bool=False,
+        filenames=None,
+        attachments_as_bytes:list=None,
+        mentions:list=None,
+        quote_timestamp:int=None,
+        quote_author:str=None,
+        quote_message:str=None,
+        quote_mentions:list=None,
+        text_mode="normal"
+        ):
         """Send a message to one (or more) recipients.
         
         Supports attachments, styled text, mentioning, and quoting if using V2.
@@ -622,24 +742,25 @@ class SignalCliRestApi(object):
             \`monospace`
         
         Returns:
-            dict: Sent message timestamp.
+            dict: Message timestamp.
         """
         if isinstance(recipients,str): # If sending "recipients" in data, recipients must be sent as a list, even it is a single recipient.
             recipients = [recipients]
         
-        params = {'message': message,
-                  'recipients':recipients,
-                  'notify_self': notify_self,
-                  'filenames': filenames,
-                  'attachments_as_bytes': attachments_as_bytes,
-                  'mentions': mentions,
-                  'quote_timestamp': quote_timestamp,
-                  'quote_author': quote_author,
-                  'quote_message': quote_message,
-                  'quote_mentions': quote_mentions,
-                  'text_mode':text_mode,
-                  'number':self._number # whoops, thats kind of important to have
-                  }
+        params = {
+            'message': message,
+            'recipients':recipients,
+            'notify_self': notify_self,
+            'filenames': filenames,
+            'attachments_as_bytes': attachments_as_bytes,
+            'mentions': mentions,
+            'quote_timestamp': quote_timestamp,
+            'quote_author': quote_author,
+            'quote_message': quote_message,
+            'quote_mentions': quote_mentions,
+            'text_mode':text_mode,
+            'number':self._number # whoops, thats kind of important to have
+            }
         
         # fall back to old api version to stay downwards compatible.
         about = self.about()
@@ -685,10 +806,12 @@ class SignalCliRestApi(object):
         # If target author isn't provided, default to recipient
         target_author = target_author if target_author else recipient
         
-        params = {'reaction': reaction,
-                  'recipient': recipient,
-                  'timestamp': timestamp,
-                  'target_author': target_author}
+        params = {
+            'reaction': reaction,
+            'recipient': recipient,
+            'timestamp': timestamp,
+            'target_author': target_author
+            }
         
         url = self._base_url + "/v1/reactions/" + self._number
         data = self._format_params(params)
@@ -710,9 +833,11 @@ class SignalCliRestApi(object):
         """
         target_author = target_author if target_author else recipient
         
-        params = {'recipient': recipient,
-                  'timestamp': timestamp,
-                  'target_author': target_author}
+        params = {
+            'recipient': recipient,
+            'timestamp': timestamp,
+            'target_author': target_author
+            }
         
         url = self._base_url + "/v1/reactions/" + self._number
         data = self._format_params(params)
@@ -805,9 +930,11 @@ class SignalCliRestApi(object):
             name (str, optional): Contact name. Defaults to None.
             expiration_in_seconds (int, optional): Disappearing Messages expiration in seconds. Defaults to None (disabled).
         """
-        params = {'recipient': contact, # Field is actually named recipient, but I think it makes more sense to cal it contact
-                  'name': name,
-                  'expiration_in_seconds': expiration_in_seconds}
+        params = {
+            'recipient': contact, # Field is actually named recipient, but I think it makes more sense to cal it contact
+            'name': name,
+            'expiration_in_seconds': expiration_in_seconds
+            }
         
         url = self._base_url + "/v1/contacts/" + self._number
         data = self._format_params(params)
@@ -825,8 +952,7 @@ class SignalCliRestApi(object):
     def send_receipt(self, recipient:str, timestamp:int, receipt_type:str='read'):
         """Mark a message as read or viewed.  See the difference between read and viewed below.
         
-        
-         From AsamK, the signal-cli maintainer:  "viewed" receipts are used e.g. for voice notes. When the user sees the voice note, a "read" receipt is sent, when the user has listened to the voice note, a "viewed" receipt is sent (displayed as a blue dot in the apps).
+        From AsamK, the signal-cli maintainer:  "viewed" receipts are used e.g. for voice notes. When the user sees the voice note, a "read" receipt is sent, when the user has listened to the voice note, a "viewed" receipt is sent (displayed as a blue dot in the apps).
 
         Args:
             recipient (str): _Message recipient. Eg: +15555555555, or group ID.
@@ -834,9 +960,11 @@ class SignalCliRestApi(object):
             receipt_type (str, optional): Receipt type.  Can be 'read', 'viewed'. Defaults to 'read'.
         """
         
-        params = {'recipient': recipient,
-                  'timestamp': timestamp,
-                  'receipt_type': receipt_type}
+        params = {
+            'recipient': recipient,
+            'timestamp': timestamp,
+            'receipt_type': receipt_type
+            }
         url = self._base_url + "/v1/receipts/" + self._number
         data = self._format_params(params)
         
@@ -866,8 +994,10 @@ class SignalCliRestApi(object):
             trust_all_known_keys (bool, optional): If set to True, all known keys of this user are trusted.  Only recommended for testing!  Defaults to False.
         """
         
-        params = {'verified_safety_number': verified_safety_number,
-                  'trust_all_known_keys': trust_all_known_keys}
+        params = {
+            'verified_safety_number': verified_safety_number,
+            'trust_all_known_keys': trust_all_known_keys
+            }
         url = self._base_url + "/v1/identities/" + self._number +'/trust/' + number_to_trust
         data = self._format_params(params)
         
@@ -885,8 +1015,10 @@ class SignalCliRestApi(object):
         """
         url = self._base_url + "/v1/qrcodelink"
         
-        params = {'device_name': device_name,
-                  'qrcode_version':  qrcode_version}
+        params = {
+            'device_name': device_name,
+            'qrcode_version':  qrcode_version
+            }
         
         data = self._format_params(params=params)
         
