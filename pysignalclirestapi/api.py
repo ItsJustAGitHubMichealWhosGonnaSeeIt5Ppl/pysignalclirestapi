@@ -434,8 +434,13 @@ class SignalCliRestApi(object):
         request = self._requester(method='delete', url=url, data=data, success_code=204, error_unknown='while removing admins from Signal Messenger group', error_couldnt='remove admins from Signal Messenger group')
 
     def _ws_url_for_receive(self, data: dict) -> str:
-        """
-        Convert base_url (http/https) + receive endpoint to ws/wss URL with query params.
+        """Convert base_url (http/https) + receive endpoint to ws/wss URL with query params.
+        
+        Args:
+            data (dict): Formatted parameters
+        
+        Returns: 
+            str: Websocket URL
         """
         base = self._base_url.rstrip("/")
         if base.startswith("https://"):
@@ -463,87 +468,13 @@ class SignalCliRestApi(object):
                 headers["Authorization"] = f"Basic {token}"
         return headers
 
-    async def receive_ws(
-            self,
-            ignore_attachments: bool = False,
-            ignore_stories: bool = False,
-            send_read_receipts: bool = False,
-            max_messages: int | None = None,
-            timeout: int = 1,
-    ) -> list:
-        """
-        Receive messages via websocket (json-rpc mode).
-
-        Collects messages until:
-          - max_messages is reached, OR
-          - no message arrives for `timeout` seconds (silence timeout)
-
-        Returns:
-            list: list of received message envelopes (dicts)
-        """
-        try:
-            import websockets  # dependency already in pyproject
-        
-        except Exception as exc:
-            raise_from(
-                SignalCliRestApiError("websockets package is required for json-rpc receive"),
-                exc,
-            )
-
-        params = {
-            "ignore_attachments": ignore_attachments,
-            "ignore_stories": ignore_stories,
-            "send_read_receipts": send_read_receipts,
-            "max_messages": max_messages,
-            "timeout": timeout,
-        }
-        data = self._format_params(params=params, endpoint="receive")
-        ws_url = self._ws_url_for_receive(data)
-
-        ssl_ctx = None
-        if ws_url.startswith("wss://"):
-            ssl_ctx = ssl.create_default_context()
-            if not self._verify_ssl:
-                ssl_ctx.check_hostname = False
-                ssl_ctx.verify_mode = ssl.CERT_NONE
-
-        received: list = []
-        try:
-            async with websockets.connect(
-                    ws_url,
-                    additional_headers=self._ws_headers() or None,
-                    ssl=ssl_ctx,
-            ) as websocket:
-                while True:
-                    if max_messages is not None and len(received) >= int(max_messages):
-                        break
-
-                    try:
-                        raw = await asyncio.wait_for(websocket.recv(), timeout=timeout)
-                    except asyncio.TimeoutError:
-                        # "silence" timeout => return what we have so far
-                        break
-
-                    try:
-                        received.append(json.loads(raw))
-                    except json.JSONDecodeError:
-                        # Keep behavior conservative: ignore malformed frames
-                        continue
-
-        except Exception as exc:
-            raise_from(
-                SignalCliRestApiError("Couldn't receive Signal Messenger data via websocket"),
-                exc,
-            )
-
-        return received
     
     async def stream_messages(self, 
         ignore_attachments: bool = False,
         ignore_stories: bool = False,
         send_read_receipts: bool = False,
         ):
-        """Stream messages via websocket (API must be in `json-rpc` mode)
+        """Stream messages via websocket (API must be in 'json-rpc; mode)
 
         Args:
             ignore_attachments (bool, optional): If True, attachments will be ignored. Defaults to False.
@@ -553,7 +484,10 @@ class SignalCliRestApi(object):
         Yields:
             dict: Single envelope (message)
         """
-        # This should work better than the current websocket implementation
+        if self._mode != "json-rpc":
+            raise SignalCliRestApiError(
+                "API is not in json-rpc mode. Use `receive()`"
+            )
         try:
             import websockets 
         
@@ -627,30 +561,17 @@ class SignalCliRestApi(object):
     ) -> list[dict]:
         """Receive (get) Signal Messages from the Signal Network.
         
-
-        If you are running the docker container in normal/native mode, this is a GET endpoint.
-        In json-rpc mode this is a websocket endpoint.
-
+        Args:
+            ignore_attachments (bool, optional): If True, attachments will be ignored. Defaults to False.
+            ignore_stories (bool, optional): If True, stories will be ignored. Defaults to False.
+            send_read_receipts (bool, optional): If True, read receipts will be sent for received messages. Defaults to False.
+            
         Returns:
             list: List of messages
         """
         if self._mode == "json-rpc":
-            # If we're already inside an event loop, we can't asyncio.run().
-            try:
-                asyncio.get_running_loop()
-            except RuntimeError:
-                return asyncio.run(
-                    self.receive_ws(
-                        ignore_attachments=ignore_attachments,
-                        ignore_stories=ignore_stories,
-                        send_read_receipts=send_read_receipts,
-                        max_messages=max_messages,
-                        timeout=timeout,
-                    )
-                )
             raise SignalCliRestApiError(
-                "receive() cannot be called from inside a running event loop in json-rpc mode. "
-                "Use: await receive_ws(...) instead."
+                "API is in json-rpc mode. use `stream_messages()`"
             )
 
         params = {
