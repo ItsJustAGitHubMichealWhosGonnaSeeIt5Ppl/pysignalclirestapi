@@ -787,11 +787,11 @@ class SignalCliRestApi(object):
         request = self._requester(method='get', url=url, success_code=200, error_unknown='while listing attachments', error_couldnt='list attachments')
         return request.json()
 
-    def get_attachment(self, attachment_id:str):
+    def get_attachment(self, attachment_id:str) -> bytes:
         """Get a signal file (attachment) in bytes.
 
         Args:
-            attachment_id (str): File (attachment) name.
+            attachment_id (str): File (attachment) ID.
 
 
         Returns:
