@@ -1,6 +1,6 @@
 # TODOs
 
-## Required before merging
+## Wanted before merging
 
 - [ ] Test authenticated API
   - [x] Basic Auth
@@ -11,10 +11,11 @@
 - [ ] Add missing endpoints
   - [ ] Merge in polls
 - [ ] Fill out the contribution guidelines
-- [ ] Reformat the entire readme
+- [ ] Reformat the entire README
   - [x] Explain how to use the websocket methods
   - [ ] Explain how to use multiple numbers
 
 ## Later down the line
 
 - [ ] Create custom objects for returned items
+  - [x] Envelope
