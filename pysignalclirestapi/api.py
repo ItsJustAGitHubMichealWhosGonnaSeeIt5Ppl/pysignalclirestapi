@@ -469,17 +469,8 @@ class SignalCliRestApi(object):
         return headers
 
     
-    async def stream_messages(self, 
-        ignore_attachments: bool = False,
-        ignore_stories: bool = False,
-        send_read_receipts: bool = False,
-        ):
+    async def stream_messages(self):
         """Stream messages via websocket (API must be in 'json-rpc; mode)
-
-        Args:
-            ignore_attachments (bool, optional): If True, attachments will be ignored. Defaults to False.
-            ignore_stories (bool, optional): If True, stories will be ignored. Defaults to False.
-            send_read_receipts (bool, optional): If True, read receipts will be sent for received messages. Defaults to False.
 
         Yields:
             dict: Single envelope (message)
@@ -497,13 +488,8 @@ class SignalCliRestApi(object):
                 exc,
             )
 
-        params = {
-            "ignore_attachments": ignore_attachments,
-            "ignore_stories": ignore_stories,
-            "send_read_receipts": send_read_receipts,
-        }
-        data = self._format_params(params=params, endpoint="receive")
-        ws_url = self._ws_url_for_receive(data)
+        # Params don't work with websocket
+        ws_url = self._ws_url_for_receive(data = {})
 
         ssl_ctx = None
         if ws_url.startswith("wss://"):
