@@ -9,7 +9,7 @@
 - [ ] Add return types
 - [ ] Complete missing docstrings
 - [ ] Add missing endpoints
-  - [ ] Add polls
+  - [ ] Merge in polls
 - [ ] Fill out the contribution guidelines
 - [ ] Reformat the entire readme
   - [x] Explain how to use the websocket methods
