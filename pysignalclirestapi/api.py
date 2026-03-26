@@ -788,7 +788,7 @@ class SignalCliRestApi(object):
         return request.json()
 
     def get_attachment(self, attachment_id:str) -> bytes:
-        """Get a signal file (attachment) in bytes.
+        """Get a signal file (attachment) in bytes
 
         Args:
             attachment_id (str): File (attachment) ID.
@@ -806,7 +806,7 @@ class SignalCliRestApi(object):
         """Delete file (attachment) from filesystem
 
         Args:
-            attachment_id (str): File (attachment) name.
+            attachment_id (str): File (attachment) ID.
         """
 
         try:
