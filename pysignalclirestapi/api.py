@@ -887,7 +887,7 @@ class SignalCliRestApi(object):
         From AsamK, the signal-cli maintainer:  "viewed" receipts are used e.g. for voice notes. When the user sees the voice note, a "read" receipt is sent, when the user has listened to the voice note, a "viewed" receipt is sent (displayed as a blue dot in the apps).
 
         Args:
-            recipient (str): _Message recipient. Eg: +15555555555, or group ID.
+            recipient (str): Message recipient. Eg: +15555555555. NOTE: As of 2026/03/27, this does not work with group IDs. Instead, use the recipients number.
             timestamp (int): Message timestamp to mark as read/viewed.
             receipt_type (str, optional): Receipt type.  Can be 'read', 'viewed'. Defaults to 'read'.
         """
