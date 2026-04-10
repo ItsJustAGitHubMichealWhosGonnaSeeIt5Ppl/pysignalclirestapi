@@ -613,6 +613,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='put', url=url ,data=data, success_code=204, error_unknown='while updating profile', error_couldnt='update profile')
         #return request
 
+    # # # MESSAGES # # #
     #TODO use string literal for the text_mode?
     def send_message(self, 
         message:str,
@@ -727,6 +728,7 @@ class SignalCliRestApi(object):
         resp = self._requester(method='delete', url=url, data=data, success_code=201, error_unknown='while deleting message', error_couldnt='delete message')
         return resp.json()
     
+    # # # REACTIONS # # #
     def add_reaction(self, reaction:str, recipient:str, timestamp:int, target_author:Optional[str] = None):
         """Add (send) a reaction to a message. Uses timestamp to identify the message to react to.
         
@@ -831,6 +833,7 @@ class SignalCliRestApi(object):
                 raise exc
             raise_from(SignalCliRestApiError("Couldn't delete attachment: "), exc)
 
+    # # # SEARCH # # #
     def search(self, numbers: list | str):
         """Check if one or more phone numbers are registered with the Signal Service.
 
@@ -852,7 +855,8 @@ class SignalCliRestApi(object):
         
         resp = self._requester(method="get", url=url, data=data, success_code=[200], error_couldnt="search number(s)", error_unknown="while searching number(s)")
         return resp.json()
-            
+
+    # # # CONTACTS # # #
     def get_contacts(self):
         """Get all Signal contacts for your account.
 
@@ -891,6 +895,7 @@ class SignalCliRestApi(object):
         url = self._base_url + "/v1/contacts/" + self._number +'/sync'
         self._requester(method='post', url=url, success_code=204, error_unknown='while updating profile', error_couldnt='update profile')
     
+    # # # RECEIPTS # # #
     def send_receipt(self, recipient:str, timestamp:int, receipt_type:str='read'):
         """Mark a message as read or viewed.  See the difference between read and viewed below.
         
