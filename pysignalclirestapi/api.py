@@ -946,7 +946,8 @@ class SignalCliRestApi(object):
         data = self._format_params(params)
         
         request = self._requester(method='put', url=url, data=data, success_code=204, error_unknown='while verifying identity', error_couldnt='verify identity')
-        
+    
+    # # # DEVICES # # #
     def link_with_qr(self, device_name:str, qrcode_version:int=10):
         """Generate QR code to link a device
 
@@ -969,6 +970,27 @@ class SignalCliRestApi(object):
         request = self._requester(method='get', url=url, data=data, success_code=200, error_unknown='generating QR code', error_couldnt='generate QR code')
         return bytes_to_base64(request.content)
     
+    def get_device_uri(self, device_name: str):
+        """Generate the deviceLinkUri string for linking without scanning a QR code.
+        
+
+        Args:
+            device_name (str): Device name.
+
+        Returns:
+            str: Device Link Uri
+        """
+        url = self._base_url + "/v1/qrcodelink/raw"
+        params = {
+            'device_name': device_name,
+            }
+        
+        data = self._format_params(params=params)
+        
+        resp = self._requester(method='get', url=url, data=data, success_code=200, error_unknown='generating deviceLinkUri', error_couldnt='generate deviceLinkUrie')
+        return resp.json().get("device_link_uri")
+    
+    # # # ACCOUNTS # # #
     def list_accounts(self): 
         """List all registered/linked accounts. 
 
