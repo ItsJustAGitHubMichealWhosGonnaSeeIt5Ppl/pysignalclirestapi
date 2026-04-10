@@ -57,7 +57,8 @@ class SignalCliRestApi(object):
 
         self._mode = self.mode() # init mode for receive with websockets
     
-    def _format_params(self, params, endpoint:str=None): #TODO should this be called from _requester to reduce reduncancy?
+    #TODO should this be called from _requester to reduce reduncancy?
+    def _format_params(self, params, endpoint:str=None): 
         """Format parameters/args/data for API calls.
         
         If endpoint is set to "receive", boolean values will be converted to a string.
@@ -379,12 +380,12 @@ class SignalCliRestApi(object):
         pass
         #TODO add some sort of response?
     
-    def remove_group_members(self, groupid:str, members:list):
+    def remove_group_members(self, groupid:str, members: str | list[str] ):
         """Remove user(s) (members) to a Signal group.
 
         Args:
             groupid (str): _Signal group ID.
-            members (str, list): Member(s) to remove.  Will accept a single user as a string, otherwise use a list.
+            members (str | list[str]): Member(s) to remove.  Will accept a single user as a string, otherwise use a list.
         """
 
         params = {
@@ -643,11 +644,12 @@ class SignalCliRestApi(object):
             start (int): The starting character of the mention.
         
         Text styling (must set text_mode to "styled")
-            \*italic text*
-            \*\*bold text**
-            \~strikethrough text~
+            \\*italic text*
+            \\*\\*bold text**
+            \\~strikethrough text~
             ||spoiler||
-            \`monospace`
+            \\`monospace`
+            
         
         Returns:
             dict: Message timestamp.
@@ -824,28 +826,27 @@ class SignalCliRestApi(object):
             raise_from(SignalCliRestApiError("Couldn't delete attachment: "), exc)
 
     def search(self, numbers: list | str):
-        """Check if one or more phone numbers are registered with the Signal Service."""
+        """Check if one or more phone numbers are registered with the Signal Service.
+
+        Args:
+            numbers (list | str): Number(s) to check. Ensure numbers are E.164 formatted
+
+        Returns:
+            list[dict]: Result(s) for number(s) checked
+        """
+        
         if isinstance(numbers, str): # If sending "recipients" in data, recipients must be sent as a list, even it is a single recipient.
             recipients = [recipients]
         
-        url = self._base_url + "/v1/search"
+        url = self._base_url + "/v1/search/" + self._number
         params = {
-            "number": self._number, 
             "numbers": numbers
             }
-        # Accounts that don't exist are returned as 400 errors
-        resp = self._requester(method="get", url=url, success_code=[200, 400], error_couldnt="search number(s)", error_unknown="while searching number(s)")
+        data = self._format_params(params)
         
-        if resp.status_code == 200:
-            return resp.json()
-        
-        elif resp.status_code == 400:
-            if resp.json().get("error", "") == "Specified account does not exist":
-                #TODO should probably a consistent object
-                return resp.json()
-            
-            else:
-                raise_from(SignalCliRestApiError("Unknown error while searching phone numbers: "), resp.raise_for_status())
+        resp = self._requester(method="get", url=url, data=data, success_code=[200], error_couldnt="search number(s)", error_unknown="while searching number(s)")
+        return resp.json()
+
             
     def get_contacts(self):
         """Get all Signal contacts for your account.
