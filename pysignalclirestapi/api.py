@@ -990,6 +990,51 @@ class SignalCliRestApi(object):
         resp = self._requester(method='get', url=url, data=data, success_code=200, error_unknown='generating deviceLinkUri', error_couldnt='generate deviceLinkUrie')
         return resp.json().get("device_link_uri")
     
+    #TODO this will raise an exception if you try to register a number that is already set up with the API
+    #TODO this doesn't check if the number is already registered elsewhere, which I think is fine?
+    def register(self, number:str, captcha:str, use_voice:bool = False):
+        """Register a number with Signal
+        
+        \nTo get the captcha token, go to https://signalcaptchas.org/registration/generate.html.
+        After solving the captcha, right-click on the "Open Signal" link and copy it. This is your captcha token
+        
+        Once you've received your verification code, use `self.verify_registration` for complete the process
+
+        Args:
+            number (str): E.164 formatted number to register
+            captcha (str): Captcha token
+            use_voice (bool, optional): Use voice for verification (defaults to SMS). Defaults to False.
+        """
+        #TODO should this raise an error?
+        if not number.startswith("+"):
+            pass
+        url = self._base_url + "/v1/register/" + number
+        
+        params = {
+            "captcha": captcha,
+            "use_voice": use_voice
+            }
+        
+        data = self._format_params(params=params)
+        resp = self._requester(method='post', url=url, data=data, success_code=201, error_unknown='while registering number', error_couldnt='register number')
+    
+    def verify_registration(self, number:str, token:str, pin: str= None):
+        """Verify/complete registration of a number.
+
+        Args:
+            number (str): E.164 formatted number
+            token (str): The token/code you received from Signal
+            pin (str, optional): No fucking idea sorry. Defaults to None.
+        """
+        url = self._base_url + "/v1/register/" + number + "/verify/" + token
+        
+        params = {
+            "pin": pin,
+            }
+        
+        data = self._format_params(params=params)
+        resp = self._requester(method='post', url=url, data=data, success_code=201, error_unknown='while registering number', error_couldnt='register number')
+    
     # # # ACCOUNTS # # #
     def list_accounts(self): 
         """List all registered/linked accounts. 
