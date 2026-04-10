@@ -223,6 +223,7 @@ class SignalCliRestApi(object):
         # I don't think there is any response data
         #return request.json()
 
+    # # # GROUPS # # #
     #TODO get rid of the extra shit and just return the id
     def create_group(self, name:str, members:list, description:str=None, expiration_time:int=0, group_link:str='disabled', permissions:dict=None) -> dict:
         """Create a Signal group.
@@ -258,17 +259,23 @@ class SignalCliRestApi(object):
         request = self._requester(method='post', url=url, data=data, success_code=[201,200], error_unknown='while creating Signal Messenger group', error_couldnt='create Signal Messenger group')
         return request.json()
 
-    def list_groups(self):
+    #TODO expand doesn't seem to do shit
+    def list_groups(self, expand:bool = False):
         """List all Signal groups.
         
         Includes groups you are no longer apart of.
-        
+
+        Args:
+            expand (bool, optional): Expand the response to show more details. Defaults to False.
+
         Returns:
-            list: Your groups.
+            list: Your groups
         """
+        
+        
         url = self._base_url + "/v1/groups/" + self._number
         
-        request = self._requester(method='get', url=url, success_code=200, error_unknown='while listing Signal Messenger groups', error_couldnt='list Signal Messenger groups')
+        request = self._requester(method='get', url=url, data = {"expand": expand}, success_code=200, error_unknown='while listing Signal Messenger groups', error_couldnt='list Signal Messenger groups')
         return request.json()
     
     def get_group(self, groupid:str):

@@ -14,6 +14,7 @@
 - [ ] Reformat the entire README
   - [x] Explain how to use the websocket methods
   - [ ] Explain how to use multiple numbers
+- [ ] Add pin-message methods for Groups
 
 ## Later down the line
 
