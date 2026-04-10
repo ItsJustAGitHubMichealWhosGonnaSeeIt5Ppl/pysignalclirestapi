@@ -70,3 +70,12 @@ async def example_1():
         else:
             print(message)
 asyncio.run(example_1())
+
+# If you want to receive messages without blocking other things from running, a queue can be used
+async def receive_to_queue():
+    # This will be used to store messages
+    envelope_queue = asyncio.Queue()
+    
+    async def get_messages():
+        async for received_item in client.stream_messages():
+            await envelope_queue.put(received_item.get("envelope"))
