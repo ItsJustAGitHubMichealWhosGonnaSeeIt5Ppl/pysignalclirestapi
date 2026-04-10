@@ -5,6 +5,7 @@ import base64
 import json
 import asyncio
 import ssl
+from token import OP
 from urllib.parse import urlencode
 from abc import ABC, abstractmethod
 from requests.models import HTTPBasicAuth
@@ -23,7 +24,7 @@ class SignalCliRestApiAuth(ABC):
     """SignalCliRestApiAuth base class."""
 
     @abstractmethod
-    def get_auth():
+    def get_auth(self):
         pass
 
 
@@ -40,7 +41,7 @@ class SignalCliRestApiHTTPBasicAuth(SignalCliRestApiAuth):
 class SignalCliRestApi(object):
     """SignalCliRestApi implementation."""
 
-    def __init__(self, base_url:str, number:str, auth:Optional[type[SignalCliRestApiAuth]] = None, verify_ssl:bool = True):
+    def __init__(self, base_url:str, number:str, auth:Optional[any] = None, verify_ssl:bool = True):
         """Initialize the class."""
         super(SignalCliRestApi, self).__init__()
         self._session = requests.Session()
@@ -58,7 +59,7 @@ class SignalCliRestApi(object):
         self._mode = self.mode() # init mode for receive with websockets
     
     #TODO should this be called from _requester to reduce reduncancy?
-    def _format_params(self, params, endpoint:str=None): 
+    def _format_params(self, params, endpoint:Optional[str] = None): 
         """Format parameters/args/data for API calls.
         
         If endpoint is set to "receive", boolean values will be converted to a string.
@@ -123,7 +124,7 @@ class SignalCliRestApi(object):
         
         return formatted_data
     
-    def _requester(self, method:str, url:str, data:dict = None, success_code:list[int] | int = 200, error_unknown:Optional[str] = None, error_couldnt:Optional[str] = None):
+    def _requester(self, method:str, url:str, data:Optional[dict] = None, success_code:list[int] | int = 200, error_unknown:Optional[str] = None, error_couldnt:Optional[str] = None):
         """Internal requester
 
         Args:
@@ -165,7 +166,7 @@ class SignalCliRestApi(object):
                 raise exc
             raise_from(SignalCliRestApiError(f"Couldn't {error_couldnt}: "), exc)
         
-    def about(self):
+    def about(self) -> dict:
         """Get general API information including capabilities, API version, and what mode is being used.
 
         Returns:
@@ -178,10 +179,8 @@ class SignalCliRestApi(object):
         
         else:
             # This is likely an auth error
-            #TODO should the signal base exception be used to provide more information?
-            resp.raise_for_status()
-    
-
+            raise_from(SignalCliRestApiError("Failed to get API infomration"), resp.raise_for_status())
+            
     def api_info(self): #TODO should this be removed?
         try:
             data = self.about()
@@ -225,7 +224,7 @@ class SignalCliRestApi(object):
 
     # # # GROUPS # # #
     #TODO get rid of the extra shit and just return the id
-    def create_group(self, name:str, members:list, description:str=None, expiration_time:int=0, group_link:str='disabled', permissions:dict=None) -> dict:
+    def create_group(self, name:str, members:list, description:Optional[str] = None, expiration_time:int=0, group_link:str='disabled', permissions:Optional[dict] = None) -> dict:
         """Create a Signal group.
 
         Args:
@@ -292,7 +291,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='get', url=url, success_code=200, error_unknown='while getting Signal Messenger group', error_couldnt='get Signal Messenger group')
         return request.json()
     
-    def update_group(self, groupid:str, name:str=None, description:str=None, expiration_time:int=None, filename:str=None, attachment_as_bytes:str=None):
+    def update_group(self, groupid:str, name:Optional[str] = None, description:Optional[str] = None, expiration_time:Optional[int] = None, filename:Optional[str] = None, attachment_as_bytes:Optional[str] = None):
         """Update a signal group.
         
         Use filename OR attachment_as_bytes, not both!
@@ -315,7 +314,7 @@ class SignalCliRestApi(object):
             }
         
         if filename is not None and attachment_as_bytes is not None:
-            raise_from(SignalCliRestApiError(f"Can't use filename and attachment_as_bytes, please only send one"))
+            raise SignalCliRestApiError(f"Can't use filename and attachment_as_bytes, please only send one")
         
         url = self._base_url + "/v1/groups/" + self._number + '/' + str(groupid)
         data = self._format_params(params, 'update_group')
@@ -547,11 +546,11 @@ class SignalCliRestApi(object):
     #TODO complete docstring
     def receive(
         self,
-        ignore_attachments: bool = False,
-        ignore_stories: bool = False,
-        send_read_receipts: bool = False,
-        max_messages: int = None,
-        timeout: int = 1,
+        ignore_attachments:bool = False,
+        ignore_stories:bool = False,
+        send_read_receipts:bool = False,
+        max_messages:Optional[int] = None,
+        timeout:int = 1,
     ) -> list[dict]:
         """Receive (get) Signal Messages from the Signal Network.
         
@@ -589,7 +588,7 @@ class SignalCliRestApi(object):
         )
         return request.json()
 
-    def update_profile(self, name:str, filename:str=None, attachment_as_bytes:bytes=None):
+    def update_profile(self, name:str, filename:Optional[str] = None, attachment_as_bytes:Optional[bytes] = None):
         """Update Signal profile.
 
         Use filename OR attachment_as_bytes, not both!
@@ -606,7 +605,7 @@ class SignalCliRestApi(object):
             }
         
         if filename is not None and attachment_as_bytes is not None:
-            raise_from(SignalCliRestApiError(f"Provide filename or attachment_as_bytes, not both!"))
+            SignalCliRestApiError(f"Provide filename or attachment_as_bytes, not both!")
         
         url = self._base_url + "/v1/profiles/" + self._number
         data = self._format_params(params, 'update_group')
@@ -620,12 +619,12 @@ class SignalCliRestApi(object):
         recipients:list,
         notify_self:bool=False,
         filenames=None,
-        attachments_as_bytes:list=None,
-        mentions:list=None,
-        quote_timestamp:int=None,
-        quote_author:str=None,
-        quote_message:str=None,
-        quote_mentions:list=None,
+        attachments_as_bytes:Optional[list] = None,
+        mentions:Optional[list] = None,
+        quote_timestamp:Optional[int] = None,
+        quote_author:Optional[str] = None,
+        quote_message:Optional[str] = None,
+        quote_mentions:Optional[list] = None,
         text_mode="normal"
         ):
         """Send a message to one (or more) recipients.
@@ -728,7 +727,7 @@ class SignalCliRestApi(object):
         resp = self._requester(method='delete', url=url, data=data, success_code=201, error_unknown='while deleting message', error_couldnt='delete message')
         return resp.json()
     
-    def add_reaction(self, reaction:str, recipient:str, timestamp:int, target_author:str=None):
+    def add_reaction(self, reaction:str, recipient:str, timestamp:int, target_author:Optional[str] = None):
         """Add (send) a reaction to a message. Uses timestamp to identify the message to react to.
         
         Reacting to a message that you have already reacted to will overwrite the previous reaction.
@@ -759,7 +758,7 @@ class SignalCliRestApi(object):
         
         self._requester(method='post', url=url, data=data, success_code=204, error_unknown='while adding reaction', error_couldnt='add reaction')
     
-    def remove_reaction(self, recipient:str, timestamp:int, target_author:str=None): #TODO if groupID is sent with no recipient ID, throw an error
+    def remove_reaction(self, recipient:str, timestamp:int, target_author:Optional[str] = None): #TODO if groupID is sent with no recipient ID, throw an error
         """Remove (delete) a reaction to a message. Uses timestamp to identify the message.
         
         Warning! Data in timestamp field is not validated and will not return an error, even if it is wrong.  This includes trying to remove a reaction that does not exist.
@@ -843,7 +842,7 @@ class SignalCliRestApi(object):
         """
         
         if isinstance(numbers, str): # If sending "recipients" in data, recipients must be sent as a list, even it is a single recipient.
-            recipients = [recipients]
+            numbers = [numbers]
         
         url = self._base_url + "/v1/search/" + self._number
         params = {
@@ -853,7 +852,6 @@ class SignalCliRestApi(object):
         
         resp = self._requester(method="get", url=url, data=data, success_code=[200], error_couldnt="search number(s)", error_unknown="while searching number(s)")
         return resp.json()
-
             
     def get_contacts(self):
         """Get all Signal contacts for your account.
@@ -866,7 +864,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='get', url=url, success_code=200, error_unknown='while updating profile', error_couldnt='update profile')
         return request.json()
     
-    def update_contact(self, contact:str, name:str=None, expiration_in_seconds:int=None):
+    def update_contact(self, contact:str, name:Optional[str] = None, expiration_in_seconds:Optional[int] = None):
         """Update a signal Contact.  Must be the main device.  If you linked your account to SignalCli via a QR code, this won't work.
 
         Args:
@@ -1018,13 +1016,13 @@ class SignalCliRestApi(object):
         data = self._format_params(params=params)
         resp = self._requester(method='post', url=url, data=data, success_code=201, error_unknown='while registering number', error_couldnt='register number')
     
-    def verify_registration(self, number:str, token:str, pin: str= None):
+    def verify_registration(self, number:str, token:str, pin:Optional[str] = None):
         """Verify/complete registration of a number.
 
         Args:
             number (str): E.164 formatted number
             token (str): The token/code you received from Signal
-            pin (str, optional): No fucking idea sorry. Defaults to None.
+            pin (str, optional): Pin for account. Defaults to None.
         """
         url = self._base_url + "/v1/register/" + number + "/verify/" + token
         
@@ -1037,10 +1035,10 @@ class SignalCliRestApi(object):
     
     # # # ACCOUNTS # # #
     def list_accounts(self): 
-        """List all registered/linked accounts. 
+        """List all registered or linked accounts. 
 
         Returns:
-            list: Phone numbers of linked/registered accounts.
+            list[str]: Numbers of linked or registered accounts.
         """
         url = self._base_url + "/v1/accounts"
         
@@ -1048,7 +1046,7 @@ class SignalCliRestApi(object):
         return request.json()
     
     def add_pin(self, pin:str): #TODO test if you have a device where this is the main account
-        """Add pin to your Signal account.  Does not work if signal-cli is not set as the main device.
+        """Add pin to your Signal account. Doesn't work if signal-cli is not the main device.
 
         Args:
             pin (str): Pin
@@ -1065,7 +1063,7 @@ class SignalCliRestApi(object):
         return request.json()
         
     def remove_pin(self):
-        """Remove pin from your Signal account.  Does not work if signal-cli is not set as the main device.
+        """Remove pin from your Signal account. Doesn't work if signal-cli is not the main device.
 
         Returns:
             _type_: _description_
