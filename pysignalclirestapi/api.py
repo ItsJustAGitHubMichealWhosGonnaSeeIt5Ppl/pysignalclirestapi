@@ -122,14 +122,14 @@ class SignalCliRestApi(object):
         
         return formatted_data
     
-    def _requester(self, method, url, data=None, success_code:any=200, error_unknown=None, error_couldnt=None):
+    def _requester(self, method:str, url:str, data:dict = None, success_code:list[int] | int = 200, error_unknown:Optional[str] = None, error_couldnt:Optional[str] = None):
         """Internal requester
 
         Args:
             method (str): Rest API method.
             url (str): API url
-            data (any, optional): Optional params or JSON data.
-            success_code (ant, optional): Success code(s) returned by API call. Defaults to 200.
+            data (dict, optional): Optional params or JSON data.
+            success_code (list[int] | int, optional): Success code(s) returned by API call. Defaults to 200.
             error_unknown (str, optional): Custom error for "unknown error".
             error_couldnt (str, optional): Custom error for "Couldn't".
         """
@@ -138,10 +138,10 @@ class SignalCliRestApi(object):
             #self._format_params(params)
         params = None
         json = None
-        if isinstance(success_code, list):
-            pass
-        else: # Make it a list
+        
+        if isinstance(success_code, int):
             success_code = [success_code]
+            
         try:
             
             if method in ['post','put','delete']:
@@ -627,7 +627,7 @@ class SignalCliRestApi(object):
         Args:
             message (str): Message.
             recipients (list): Recipient(s).
-            notify_self (bool, optional): Requires API version 0.92+.  If set to Ture, other devices linked to the same account will get a notification for messages you send. Defaults to False (no notification).
+            notify_self (bool, optional): Requires API version 0.92+. If True, other devices linked to the same account will get a notification for messages you send. Defaults to False (no notification).
             filenames (str, optional): Filename(s) to be sent.
             attachments_as_bytes (list, optional): Attachment(s) in bytes format (inside a list).
             mentions (list, optional): Mention another user. See formatting below.
@@ -652,7 +652,7 @@ class SignalCliRestApi(object):
         Returns:
             dict: Message timestamp.
         """
-        if isinstance(recipients,str): # If sending "recipients" in data, recipients must be sent as a list, even it is a single recipient.
+        if isinstance(recipients, str): # If sending "recipients" in data, recipients must be sent as a list, even it is a single recipient.
             recipients = [recipients]
         
         params = {
@@ -728,7 +728,7 @@ class SignalCliRestApi(object):
                 
         Args:
             reaction (str): Reaction. Must be an Emoji.
-            recipient (str): Message recipient. Eg: +15555555555, or group ID.
+            recipient (str): Message recipient. Eg: +15555555555. NOTE: As of 2026/03/27, this does not work with group IDs. Instead, use the recipients number.
             timestamp (int): Message timestamp to add reaction to.
             target_author (str, optional): The target message author. If not provided, recipient will be used.
 
@@ -823,25 +823,29 @@ class SignalCliRestApi(object):
                 raise exc
             raise_from(SignalCliRestApiError("Couldn't delete attachment: "), exc)
 
-    def search(self, numbers):
+    def search(self, numbers: list | str):
         """Check if one or more phone numbers are registered with the Signal Service."""
-
-        try:
-            url = self._base_url + "/v1/search"
-            params = {"number": self._number, "numbers": numbers}
-
-            resp = requests.get(url, params=params, auth=self._auth, verify=self._verify_ssl)
-            if resp.status_code != 200:
-                json_resp = resp.json()
-                if "error" in json_resp:
-                    raise SignalCliRestApiError(json_resp["error"])
-                raise SignalCliRestApiError("Unknown error while searching phone numbers")
-
+        if isinstance(numbers, str): # If sending "recipients" in data, recipients must be sent as a list, even it is a single recipient.
+            recipients = [recipients]
+        
+        url = self._base_url + "/v1/search"
+        params = {
+            "number": self._number, 
+            "numbers": numbers
+            }
+        # Accounts that don't exist are returned as 400 errors
+        resp = self._requester(method="get", url=url, success_code=[200, 400], error_couldnt="search number(s)", error_unknown="while searching number(s)")
+        
+        if resp.status_code == 200:
             return resp.json()
-        except Exception as exc:
-            if exc.__class__ == SignalCliRestApiError:
-                raise exc
-            raise_from(SignalCliRestApiError("Couldn't search for phone numbers: "), exc)
+        
+        elif resp.status_code == 400:
+            if resp.json().get("error", "") == "Specified account does not exist":
+                #TODO should probably a consistent object
+                return resp.json()
+            
+            else:
+                raise_from(SignalCliRestApiError("Unknown error while searching phone numbers: "), resp.raise_for_status())
             
     def get_contacts(self):
         """Get all Signal contacts for your account.
