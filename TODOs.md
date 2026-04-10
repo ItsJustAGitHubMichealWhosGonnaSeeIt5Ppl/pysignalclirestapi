@@ -10,6 +10,7 @@
 - [ ] Complete missing docstrings
 - [ ] Add missing endpoints
   - [ ] Merge in polls
+  - [x] Register account
 - [ ] Fill out the contribution guidelines
 - [ ] Reformat the entire README
   - [x] Explain how to use the websocket methods
@@ -20,3 +21,4 @@
 
 - [ ] Create custom objects for returned items
   - [x] Envelope
+- [ ] Better multi-account support?
