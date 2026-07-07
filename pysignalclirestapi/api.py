@@ -165,7 +165,8 @@ class SignalCliRestApi(object):
             if exc.__class__ == SignalCliRestApiError:
                 raise exc
             raise_from(SignalCliRestApiError(f"Couldn't {error_couldnt}: "), exc)
-        
+    
+    #GET /v1/about
     def about(self) -> dict:
         """Get general API information including capabilities, API version, and what mode is being used.
 
@@ -215,6 +216,7 @@ class SignalCliRestApi(object):
             pass
         return mode
     
+    #GET /v1/health
     #TODO is this needed at all?
     def _check_health(self):
         url = self._base_url + "/v1/health"
@@ -224,6 +226,7 @@ class SignalCliRestApi(object):
 
     # # # GROUPS # # #
     #TODO get rid of the extra shit and just return the id
+    # POST /v1/groups/{number}
     def create_group(self, name:str, members:list, description:Optional[str] = None, expiration_time:int=0, group_link:str='disabled', permissions:Optional[dict] = None) -> dict:
         """Create a Signal group.
 
@@ -259,6 +262,7 @@ class SignalCliRestApi(object):
         return request.json()
 
     #TODO expand doesn't seem to do shit
+    # GET /v1/groups/{number}
     def list_groups(self, expand:bool = False):
         """List all Signal groups.
         
@@ -277,6 +281,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='get', url=url, data = {"expand": expand}, success_code=200, error_unknown='while listing Signal Messenger groups', error_couldnt='list Signal Messenger groups')
         return request.json()
     
+    # GET /v1/groups/{number}/{groupid}
     def get_group(self, groupid:str):
         """Get a single Signal group. 
 
@@ -291,6 +296,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='get', url=url, success_code=200, error_unknown='while getting Signal Messenger group', error_couldnt='get Signal Messenger group')
         return request.json()
     
+    # PUT /v1/groups/{number}/{groupid}
     def update_group(self, groupid:str, name:Optional[str] = None, description:Optional[str] = None, expiration_time:Optional[int] = None, filename:Optional[str] = None, attachment_as_bytes:Optional[str] = None):
         """Update a signal group.
         
@@ -321,7 +327,8 @@ class SignalCliRestApi(object):
         # TODO add some sort of confirmation for the user
         request = self._requester(method='put', url=url ,data=data, success_code=204, error_unknown='while updating Signal Messenger group', error_couldnt='update Signal Messenger group')
         #return request
-        
+    
+    # DELETE /v1/groups/{number}/{groupid}
     def delete_group(self, groupid:str):
         """Delete a Signal group.
 
@@ -332,6 +339,7 @@ class SignalCliRestApi(object):
         
         request = self._requester(method='delete', url=url, success_code=200, error_unknown='while deleting Signal Messenger group', error_couldnt='delete Signal Messenger group')
     
+    # POST /v1/groups/{number}/{groupid}/join
     def join_group(self, groupid:str):
         """Join a Signal group by ID.
 
@@ -344,6 +352,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='post', url=url, success_code=204, error_unknown='while joining Signal Messenger group', error_couldnt='join Signal Messenger group')
         #return request.json()
     
+    # POST /v1/groups/{number}/{groupid}/quit
     def leave_group(self, groupid:str):
         """Leave a Signal group.
 
@@ -355,6 +364,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='post', url=url, success_code=204, error_unknown='while leaving Signal Messenger group', error_couldnt='leave Signal Messenger group')
         #return request.json()
     
+    # POST /v1/groups/{number}/{groupid}/block
     def block_group(self, groupid:str):
         """Block a Signal group.
 
@@ -366,6 +376,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='post', url=url, success_code=204, error_unknown='while blocking Signal Messenger group', error_couldnt='block Signal Messenger group')
         #return request.json()
     
+    # POST /v1/groups/{number}/{groupid}/members
     def add_group_members(self, groupid:str, members:list):
         """Add user(s) (members) to a Signal group.
 
@@ -386,6 +397,7 @@ class SignalCliRestApi(object):
         pass
         #TODO add some sort of response?
     
+    # DELETE /v1/groups/{number}/{groupid}/members
     def remove_group_members(self, groupid:str, members: str | list[str] ):
         """Remove user(s) (members) to a Signal group.
 
@@ -403,7 +415,8 @@ class SignalCliRestApi(object):
         data = self._format_params(params)
         
         request = self._requester(method='delete', url=url, data=data, success_code=204, error_unknown='while removing members from Signal Messenger group', error_couldnt='remove members from Signal Messenger group')
-            
+    
+    # POST /v1/groups/{number}/{groupid}/admins     
     def add_group_admins(self, groupid:str, admins:list):
         """Promote user(s) to admin of a Signal group.  User must already be in the group to be promoted.
 
@@ -422,6 +435,7 @@ class SignalCliRestApi(object):
         
         request = self._requester(method='post', url=url, data=data, success_code=204, error_unknown='while adding admins to Signal Messenger group', error_couldnt='add admins to Signal Messenger group')
     
+    # DELETE /v1/groups/{number}/{groupid}/admins
     def remove_group_admins(self, groupid:str, admins:list):
         """Demote admin(s) of a Signal group.  Demoting a user will not remove them from the group.
 
@@ -439,7 +453,8 @@ class SignalCliRestApi(object):
         data = self._format_params(unformatted_data)
         
         request = self._requester(method='delete', url=url, data=data, success_code=204, error_unknown='while removing admins from Signal Messenger group', error_couldnt='remove admins from Signal Messenger group')
-
+        
+    # # # MESSAGES # # #
     def _ws_url_for_receive(self, data: dict) -> str:
         """Convert base_url (http/https) + receive endpoint to ws/wss URL with query params.
         
@@ -544,6 +559,7 @@ class SignalCliRestApi(object):
             )
         
     #TODO complete docstring
+    # GET /v1/receive/{number}
     def receive(
         self,
         ignore_attachments:bool = False,
@@ -588,33 +604,9 @@ class SignalCliRestApi(object):
         )
         return request.json()
 
-    def update_profile(self, name:str, filename:Optional[str] = None, attachment_as_bytes:Optional[bytes] = None):
-        """Update Signal profile.
-
-        Use filename OR attachment_as_bytes, not both!
-        
-        Args:
-            name (str, optional): New profile name.
-            filename (str, optional): Filename of new avatar.
-            attachment_as_bytes (bytes, optional): Attachment(s) in bytes format.
-        """
-        params = {
-            'name': name,
-            'filename':filename,
-            'attachment_as_bytes': attachment_as_bytes
-            }
-        
-        if filename is not None and attachment_as_bytes is not None:
-            SignalCliRestApiError(f"Provide filename or attachment_as_bytes, not both!")
-        
-        url = self._base_url + "/v1/profiles/" + self._number
-        data = self._format_params(params, 'update_group')
-        # TODO add some sort of confirmation for the user
-        request = self._requester(method='put', url=url ,data=data, success_code=204, error_unknown='while updating profile', error_couldnt='update profile')
-        #return request
-
-    # # # MESSAGES # # #
+    
     #TODO use string literal for the text_mode?
+    # POST /v2/send
     def send_message(self, 
         message:str,
         recipients:list,
@@ -704,6 +696,7 @@ class SignalCliRestApi(object):
         response = self._requester(method='post', url=url, data=data, success_code=201, error_unknown='while sending message', error_couldnt='send message')
         return json.loads(response.content)
     
+    # DELETE /v1/remote-delete/{number}
     def delete_message(self,
         recipient:str,
         timestamp:int
@@ -728,7 +721,35 @@ class SignalCliRestApi(object):
         resp = self._requester(method='delete', url=url, data=data, success_code=201, error_unknown='while deleting message', error_couldnt='delete message')
         return resp.json()
     
+    # # # PROFILES # # #
+    # PUT /v1/profiles/{number}
+    def update_profile(self, name:str, filename:Optional[str] = None, attachment_as_bytes:Optional[bytes] = None):
+        """Update Signal profile.
+
+        Use filename OR attachment_as_bytes, not both!
+        
+        Args:
+            name (str, optional): New profile name.
+            filename (str, optional): Filename of new avatar.
+            attachment_as_bytes (bytes, optional): Attachment(s) in bytes format.
+        """
+        params = {
+            'name': name,
+            'filename':filename,
+            'attachment_as_bytes': attachment_as_bytes
+            }
+        
+        if filename is not None and attachment_as_bytes is not None:
+            SignalCliRestApiError(f"Provide filename or attachment_as_bytes, not both!")
+        
+        url = self._base_url + "/v1/profiles/" + self._number
+        data = self._format_params(params, 'update_group')
+        # TODO add some sort of confirmation for the user
+        request = self._requester(method='put', url=url ,data=data, success_code=204, error_unknown='while updating profile', error_couldnt='update profile')
+        #return request
+    
     # # # REACTIONS # # #
+    # POST /v1/reactions/{number}
     def add_reaction(self, reaction:str, recipient:str, timestamp:int, target_author:Optional[str] = None):
         """Add (send) a reaction to a message. Uses timestamp to identify the message to react to.
         
@@ -760,6 +781,7 @@ class SignalCliRestApi(object):
         
         self._requester(method='post', url=url, data=data, success_code=204, error_unknown='while adding reaction', error_couldnt='add reaction')
     
+    # DELETE /v1/reactions/{number}
     def remove_reaction(self, recipient:str, timestamp:int, target_author:Optional[str] = None): #TODO if groupID is sent with no recipient ID, throw an error
         """Remove (delete) a reaction to a message. Uses timestamp to identify the message.
         
@@ -786,6 +808,8 @@ class SignalCliRestApi(object):
         
         self._requester(method='delete', url=url, data=data, success_code=204, error_unknown='while removing reaction', error_couldnt='remove reaction')
     
+    # # # ATTACHMENTS # # #
+    # GET /v1/attachments
     def list_attachments(self):
         """Get a list of all files (attachments) in Signal's media folder.
 
@@ -796,7 +820,8 @@ class SignalCliRestApi(object):
         
         request = self._requester(method='get', url=url, success_code=200, error_unknown='while listing attachments', error_couldnt='list attachments')
         return request.json()
-
+    
+    # GET /v1/attachments/{attachment}
     def get_attachment(self, attachment_id:str) -> bytes:
         """Get a signal file (attachment) in bytes
 
@@ -811,7 +836,8 @@ class SignalCliRestApi(object):
         
         request = self._requester(method='get', url=url, success_code=200, error_unknown='while getting attachment', error_couldnt='get attachment')
         return request.content
-
+    
+    # DELETE /v1/attachments/{attachment}
     def delete_attachment(self, attachment_id):
         """Delete file (attachment) from filesystem
 
@@ -834,6 +860,7 @@ class SignalCliRestApi(object):
             raise_from(SignalCliRestApiError("Couldn't delete attachment: "), exc)
 
     # # # SEARCH # # #
+    # GET v1/search/{number}
     def search(self, numbers: list | str):
         """Check if one or more phone numbers are registered with the Signal Service.
 
@@ -857,7 +884,8 @@ class SignalCliRestApi(object):
         return resp.json()
 
     # # # CONTACTS # # #
-    def get_contacts(self):
+    # GET /v1/contacts/{number}
+    def list_contacts(self):
         """Get all Signal contacts for your account.
 
         Returns:
@@ -868,6 +896,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='get', url=url, success_code=200, error_unknown='while updating profile', error_couldnt='update profile')
         return request.json()
     
+    # PUT /v1/contacts/{number}
     def update_contact(self, contact:str, name:Optional[str] = None, expiration_in_seconds:Optional[int] = None):
         """Update a signal Contact.  Must be the main device.  If you linked your account to SignalCli via a QR code, this won't work.
 
@@ -888,6 +917,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='put', url=url, data=data, success_code=204, error_unknown='while updating profile', error_couldnt='update profile')
         return request.json()
     
+    # POST /v1/contacts/{number}/sync
     def sync_contacts(self):
         """Send a synchronization message with the local contacts list to all linked devices. This command should only be used if this is the primary device.
         """
@@ -896,6 +926,7 @@ class SignalCliRestApi(object):
         self._requester(method='post', url=url, success_code=204, error_unknown='while updating profile', error_couldnt='update profile')
     
     # # # RECEIPTS # # #
+    # POST /v1/receipts/{number}
     def send_receipt(self, recipient:str, timestamp:int, receipt_type:str='read'):
         """Mark a message as read or viewed.  See the difference between read and viewed below.
         
@@ -917,8 +948,21 @@ class SignalCliRestApi(object):
         
         request = self._requester(method='post', url=url, data=data, success_code=204, error_unknown='while sending receipt', error_couldnt='send receipt')
         #return request.json() #TODO confirm if this returns anything
-        
+    
+    # # # IDENTITIES # # #
     def list_indentities(self):
+        """List all identities for your Signal account.
+        
+        Order of identities may change between calls
+
+        Returns:
+            list: List of identities.
+        """
+        print("DEPRECATION WARNING: 'list_indentities' will be removed in future release as it was a mis-spelling. Use 'list_identities' going forward!")
+        return self.list_identities()
+    
+    # GET /v1/identities/{number}
+    def list_identities(self):
         """List all identities for your Signal account.
         
         Order of identities may change between calls
@@ -940,6 +984,18 @@ class SignalCliRestApi(object):
             verified_safety_number (str): Safety number of identity.  Can be gotten from list_identities()
             trust_all_known_keys (bool, optional): If set to True, all known keys of this user are trusted.  Only recommended for testing!  Defaults to False.
         """
+        print("DEPRECATION WARNING: 'verify_indentity' will be removed in future release as it was a mis-spelling. Use 'verify_identity' going forward!")
+        self.verify_identity(number_to_trust=number_to_trust, verified_safety_number=verified_safety_number, trust_all_known_keys=trust_all_known_keys)
+    
+    # PUT /v1/identities/{number}/trust/{numberToTrust}
+    def verify_identity(self, number_to_trust:str, verified_safety_number:str, trust_all_known_keys:bool=False):
+        """Verify/Trust an identity.
+
+        Args:
+            number_to_trust (str): Number to mark as verified/trusted.
+            verified_safety_number (str): Safety number of identity.  Can be gotten from list_identities()
+            trust_all_known_keys (bool, optional): If set to True, all known keys of this user are trusted.  Only recommended for testing!  Defaults to False.
+        """
         
         params = {
             'verified_safety_number': verified_safety_number,
@@ -951,6 +1007,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='put', url=url, data=data, success_code=204, error_unknown='while verifying identity', error_couldnt='verify identity')
     
     # # # DEVICES # # #
+    # GET /v1/qrcodelink
     def link_with_qr(self, device_name:str, qrcode_version:int=10):
         """Generate QR code to link a device
 
@@ -973,6 +1030,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='get', url=url, data=data, success_code=200, error_unknown='generating QR code', error_couldnt='generate QR code')
         return bytes_to_base64(request.content)
     
+    # GET /v1/qrcodelink/raw
     def get_device_uri(self, device_name: str):
         """Generate the deviceLinkUri string for linking without scanning a QR code.
         
@@ -995,6 +1053,7 @@ class SignalCliRestApi(object):
     
     #TODO this will raise an exception if you try to register a number that is already set up with the API
     #TODO this doesn't check if the number is already registered elsewhere, which I think is fine?
+    # POST /v1/register/{number}
     def register(self, number:str, captcha:str, use_voice:bool = False):
         """Register a number with Signal
         
@@ -1021,6 +1080,7 @@ class SignalCliRestApi(object):
         data = self._format_params(params=params)
         resp = self._requester(method='post', url=url, data=data, success_code=201, error_unknown='while registering number', error_couldnt='register number')
     
+    #POST /v1/register/{number}/verify/{token}
     def verify_registration(self, number:str, token:str, pin:Optional[str] = None):
         """Verify/complete registration of a number.
 
@@ -1039,6 +1099,7 @@ class SignalCliRestApi(object):
         resp = self._requester(method='post', url=url, data=data, success_code=201, error_unknown='while registering number', error_couldnt='register number')
     
     # # # ACCOUNTS # # #
+    # GET /v1/accounts
     def list_accounts(self): 
         """List all registered or linked accounts. 
 
@@ -1050,6 +1111,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='get', url=url, success_code=200, error_unknown='getting linked/registered accounts', error_couldnt='get linked/registered accounts')
         return request.json()
     
+    # POST /v1/accounts/{number}/pin
     def add_pin(self, pin:str): #TODO test if you have a device where this is the main account
         """Add pin to your Signal account. Doesn't work if signal-cli is not the main device.
 
@@ -1067,6 +1129,7 @@ class SignalCliRestApi(object):
         request = self._requester(method='post', url=url, data=data, success_code=201, error_unknown='setting account pin', error_couldnt='set account pin')
         return request.json()
         
+    # DELETE /v1/accounts/{number}/pin
     def remove_pin(self):
         """Remove pin from your Signal account. Doesn't work if signal-cli is not the main device.
 
