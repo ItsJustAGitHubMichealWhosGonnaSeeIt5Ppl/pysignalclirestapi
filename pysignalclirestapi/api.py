@@ -721,6 +721,40 @@ class SignalCliRestApi(object):
         resp = self._requester(method='delete', url=url, data=data, success_code=201, error_unknown='while deleting message', error_couldnt='delete message')
         return resp.json()
     
+    # PUT /v1/typing-indicator/{number}
+    def show_typing_indicator(self, recipient:str):
+        """Show a typing indicator
+
+        Args:
+            recipients (str): Recipient.
+        """
+        params = {
+            "recipient": recipient
+        }
+        
+        url = self._base_url + "/v1/typing-indicator/" + self._number
+        data = self._format_params(params)
+        
+        resp = self._requester(method='put', url=url, data=data, success_code=204, error_unknown='while showing typing indicator', error_couldnt='show typing indicator')
+        return resp.json()
+    
+    # DELETE /v1/typing-indicator/{number}
+    def hide_typing_indicator(self, recipient:str):
+        """Hide a typing indicator
+
+        Args:
+            recipients (str): Recipient.
+        """
+        params = {
+            "recipient": recipient
+        }
+        
+        url = self._base_url + "/v1/typing-indicator/" + self._number
+        data = self._format_params(params)
+        
+        resp = self._requester(method='delete', url=url, data=data, success_code=204, error_unknown='while hiding typing indicator', error_couldnt='hide typing indicator')
+        return resp.json()
+    
     # # # PROFILES # # #
     # PUT /v1/profiles/{number}
     def update_profile(self, name:str, filename:Optional[str] = None, attachment_as_bytes:Optional[bytes] = None):

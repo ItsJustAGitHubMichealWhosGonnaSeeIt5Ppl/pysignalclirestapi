@@ -113,8 +113,10 @@ Send and Receive Signal Messages.
   - [ ] Test
 - [x] POST: /v2/send - Send a signal message.
   - [ ] Test
-- [ ] DELETE: /v1/typing-indicator/{number} - Hide Typing Indicator.
-- [ ] PUT: /v1/typing-indicator/{number} - Show Typing Indicator.
+- [x] DELETE: /v1/typing-indicator/{number} - Hide Typing Indicator.
+  - [ ] Test
+- [x] PUT: /v1/typing-indicator/{number} - Show Typing Indicator.
+  - [ ] Test
 
 ### Attachments
 
@@ -179,7 +181,7 @@ List and Install Sticker Packs
   - [ ] Test
 - [x] PUT: /v1/contacts/{number} - Updates the info associated to a number on the contact list. If the contact doesn’t exist yet, it will be added.
   - [ ] Test
-- [**x**] POST: /v1/contacts/{number}/sync - Send a synchronization message with the local contacts list to all linked devices.
+- [x] POST: /v1/contacts/{number}/sync - Send a synchronization message with the local contacts list to all linked devices.
   - [ ] Test
 - [ ] GET: /v1/contacts/{number}/{uuid} - List Contact
 - [ ] GET: /v1/contacts/{number}/{uuid}/avatar - Returns the avatar of a contact
