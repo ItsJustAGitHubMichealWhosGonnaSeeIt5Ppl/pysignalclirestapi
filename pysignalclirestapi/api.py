@@ -78,7 +78,7 @@ class SignalCliRestApi(object):
         for item, value in params.items(): # Check params, add anything that isn't blank to the query
             if value !=None:
                 # Allow conditional formatting, depending on the endpoint
-                if endpoint in ['receive']: # This is still needed as of 2025/03/19, but only for receive endpoint?
+                if endpoint in ['receive', 'list_groups']: # This is still needed as of 2025/03/19, but only for receive endpoint?
                     value = 'true' if value is True else 'false' if value is False else value # Convert bool to string
                 
                 elif endpoint in ['send_message']:
@@ -276,7 +276,7 @@ class SignalCliRestApi(object):
         
         url = self._base_url + "/v1/groups/" + self._number
         
-        request = self._requester(method='get', url=url, data = {"expand": expand}, success_code=200, error_unknown='while listing Signal Messenger groups', error_couldnt='list Signal Messenger groups')
+        request = self._requester(method='get', url=url, data = self._format_params({"expand": expand}, endpoint="list_groups"), success_code=200, error_unknown='while listing Signal Messenger groups', error_couldnt='list Signal Messenger groups')
         return request.json()
     
     # GET /v1/groups/{number}/{groupid}
