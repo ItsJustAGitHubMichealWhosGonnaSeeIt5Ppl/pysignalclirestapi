@@ -1,9 +1,7 @@
 """SignalCliRestApi Python library."""
 
-import sys
 import base64
 import json
-import asyncio
 import ssl
 from token import OP
 from urllib.parse import urlencode
@@ -610,6 +608,7 @@ class SignalCliRestApi(object):
     def send_message(self, 
         message:str,
         recipients:list,
+        edit_timestamp:Optional[int] = None,
         notify_self:bool=False,
         filenames=None,
         attachments_as_bytes:Optional[list] = None,
@@ -629,6 +628,7 @@ class SignalCliRestApi(object):
             recipients (list): Recipient(s).
             notify_self (bool, optional): Requires API version 0.92+. If True, other devices linked to the same account will get a notification for messages you send. Defaults to False (no notification).
             filenames (str, optional): Filename(s) to be sent.
+            edit_timestamp (int, optional): Timestamp of message to edit.
             attachments_as_bytes (list, optional): Attachment(s) in bytes format (inside a list).
             mentions (list, optional): Mention another user. See formatting below.
             quote_timestamp (int, optional): Timestamp of qouted message.
@@ -660,6 +660,7 @@ class SignalCliRestApi(object):
             'message': message,
             'recipients':recipients,
             'notify_self': notify_self,
+            'edit_timestamp': edit_timestamp,
             'filenames': filenames,
             'attachments_as_bytes': attachments_as_bytes,
             'mentions': mentions,
@@ -1174,3 +1175,33 @@ class SignalCliRestApi(object):
         
         request = self._requester(method='delete', url=url, success_code=204, error_unknown='removing account pin', error_couldnt='remove account pin')
         return request.json()
+    
+    # # # POLLS # # #
+    # DELETE /v1/polls/{number}
+    def delete_poll(self, recipient:str|int, poll_timestamp:int,):
+        url = self._base_url + "/v1/polls/" + self._number
+        
+        params = {
+            "poll_timestamp": poll_timestamp,
+            "recipient": recipient
+            }
+                
+        data = self._format_params(params=params)
+        request = self._requester(method='delete', url=url, data=data, success_code=204, error_unknown='removing poll', error_couldnt='remove poll')
+        return request.json()
+    
+    # POST /v1/polls/{number}
+    def create_poll(self, recipient:str|int, question:str, answers:list[str], allow_multiple_selections:bool=False):
+        url = self._base_url + "/v1/polls/" + self._number
+        
+        params = {
+            "allow_multiple_selections": allow_multiple_selections,
+            "answers": answers,
+            "question": question,
+            "recipient": recipient
+            }
+                
+        data = self._format_params(params=params)
+        request = self._requester(method='post', url=url, data=data, success_code=204, error_unknown='creating poll', error_couldnt='create poll')
+        return request.json()
+    
