@@ -1178,7 +1178,7 @@ class SignalCliRestApi(object):
     
     # # # POLLS # # #
     # DELETE /v1/polls/{number}
-    def delete_poll(self, recipient:str|int, poll_timestamp:int,):
+    def end_poll(self, recipient:str|int, poll_timestamp:int,):
         url = self._base_url + "/v1/polls/" + self._number
         
         params = {
@@ -1200,8 +1200,8 @@ class SignalCliRestApi(object):
             "question": question,
             "recipient": recipient
             }
-                
+
         data = self._format_params(params=params)
-        request = self._requester(method='post', url=url, data=data, success_code=204, error_unknown='creating poll', error_couldnt='create poll')
+        request = self._requester(method='post', url=url, data=data, success_code=201, error_unknown='creating poll', error_couldnt='create poll')
         return request.json()
     
